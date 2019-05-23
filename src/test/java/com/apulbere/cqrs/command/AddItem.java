@@ -4,6 +4,8 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 
 import com.apulbere.cqrs.Command;
 import com.apulbere.cqrs.Order;
+import com.apulbere.cqrs.OrderStatus;
+import com.apulbere.cqrs.ValidationResult;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
@@ -19,5 +21,13 @@ public class AddItem implements Command<Order> {
             var items = Stream.concat(order.getItems().stream(), Stream.of(item)).collect(toUnmodifiableList());
             return order.withItems(items);
         };
+    }
+
+    @Override
+    public ValidationResult validateTargetState(Order target) {
+        if(OrderStatus.DRAFT.equals(target.getStatus())) {
+            return ValidationResult.valid();
+        }
+        return new ValidationResult("cannot add item [" + item + "] due to status of order [" + target.getStatus() + "]", false);
     }
 }

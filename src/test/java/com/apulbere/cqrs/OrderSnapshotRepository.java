@@ -13,6 +13,8 @@ public class OrderSnapshotRepository implements Repository<UUID, Order> {
     private final Map<UUID, List<Order>> snapshots = new HashMap<>();
     private final int eventsSnapshotDistance;
 
+    private static final Queue<Function<Order, Order>> NO_EVENTS = new LinkedList<>();
+
     private int currentEventsSnapshotDistance;
 
     public OrderSnapshotRepository(int eventsSnapshotDistance) {
@@ -24,9 +26,10 @@ public class OrderSnapshotRepository implements Repository<UUID, Order> {
     }
 
     @Override
-    public void persists(UUID dataId, Function<Order, Order> function) {
+    public void persist(UUID dataId, Function<Order, Order> function) {
         if(currentEventsSnapshotDistance == eventsSnapshotDistance) {
-            snapshots.computeIfAbsent(dataId, k -> new LinkedList<>()).add(fetchLastSnapshot(dataId));
+            var snap = createSnapshot(dataId, events.getOrDefault(dataId, NO_EVENTS));
+            snapshots.computeIfAbsent(dataId, k -> new LinkedList<>()).add(snap);
             currentEventsSnapshotDistance = 0;
         }
         events.computeIfAbsent(dataId, k -> new LinkedList<>()).add(function);
@@ -35,7 +38,10 @@ public class OrderSnapshotRepository implements Repository<UUID, Order> {
 
     @Override
     public Order fetch(UUID id) {
-        var queue = events.get(id);
+        return createSnapshot(id, new LinkedList<>(events.getOrDefault(id, NO_EVENTS)));
+    }
+
+    private Order createSnapshot(UUID id, Queue<Function<Order, Order>> queue) {
         var order = fetchLastSnapshot(id);
         while(!queue.isEmpty()) {
             order = queue.poll().apply(order);
