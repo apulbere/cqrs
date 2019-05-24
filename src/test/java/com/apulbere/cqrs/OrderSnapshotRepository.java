@@ -1,19 +1,17 @@
 package com.apulbere.cqrs;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.UUID;
 import java.util.function.Function;
 
 public class OrderSnapshotRepository implements Repository<UUID, Order> {
-    private final Map<UUID, Queue<Function<Order, Order>>> events = new HashMap<>();
+    private final Map<UUID, List<Event<Order>>> eventsMap = new HashMap<>();
     private final Map<UUID, List<Order>> snapshots = new HashMap<>();
     private final int eventsSnapshotDistance;
-
-    private static final Queue<Function<Order, Order>> NO_EVENTS = new LinkedList<>();
 
     private int currentEventsSnapshotDistance;
 
@@ -21,32 +19,38 @@ public class OrderSnapshotRepository implements Repository<UUID, Order> {
         this.eventsSnapshotDistance = eventsSnapshotDistance;
     }
 
-    public OrderSnapshotRepository() {
-        this(2);
-    }
-
     @Override
     public void persist(UUID dataId, Function<Order, Order> function) {
+        Event<Order> event;
         if(currentEventsSnapshotDistance == eventsSnapshotDistance) {
-            var snap = createSnapshot(dataId, events.getOrDefault(dataId, NO_EVENTS));
-            snapshots.computeIfAbsent(dataId, k -> new LinkedList<>()).add(snap);
+            var snap = createSnapshot(dataId, eventsMap.getOrDefault(dataId, List.of()));
+            snapshots.computeIfAbsent(dataId, k -> new ArrayList<>()).add(snap);
             currentEventsSnapshotDistance = 0;
+            event = new Event<>(function, true);
+        } else {
+            event = new Event<>(function, false);
         }
-        events.computeIfAbsent(dataId, k -> new LinkedList<>()).add(function);
+        eventsMap.computeIfAbsent(dataId, k -> new ArrayList<>()).add(event);
         currentEventsSnapshotDistance++;
     }
 
     @Override
     public Order fetch(UUID id) {
-        return createSnapshot(id, new LinkedList<>(events.getOrDefault(id, NO_EVENTS)));
+        return createSnapshot(id, eventsMap.getOrDefault(id, List.of()));
     }
 
-    private Order createSnapshot(UUID id, Queue<Function<Order, Order>> queue) {
-        var order = fetchLastSnapshot(id);
-        while(!queue.isEmpty()) {
-            order = queue.poll().apply(order);
+    private Order createSnapshot(UUID id, List<Event<Order>> events) {
+        return findAllEventsAfterMostRecentSnapshot(events).stream()
+                .reduce(fetchLastSnapshot(id), (order, event) -> event.getCommand().apply(order), (a, b) -> { throw new UnsupportedOperationException(); });
+    }
+
+    private List<Event<Order>> findAllEventsAfterMostRecentSnapshot(List<Event<Order>> events) {
+        var queue = new LinkedList<Event<Order>>();
+        var listIterator = events.listIterator(events.size());
+        while(listIterator.hasPrevious()) {
+            queue.push(listIterator.previous());
         }
-        return order;
+        return queue;
     }
 
     private Order fetchLastSnapshot(UUID id) {
