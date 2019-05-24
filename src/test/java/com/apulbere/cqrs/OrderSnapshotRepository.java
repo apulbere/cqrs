@@ -7,14 +7,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class OrderSnapshotRepository implements Repository<UUID, Order> {
     private final Map<UUID, List<Event<Order>>> eventsMap = new HashMap<>();
     private final Map<UUID, List<Order>> snapshots = new HashMap<>();
     private final int eventsSnapshotDistance;
 
-    private int currentEventsSnapshotDistance;
+    private int currentEventsSnapshotDistance = 0;
 
+    /**
+     *
+     * @param eventsSnapshotDistance - e.g. for value 2 will result in: event, event, event/snapshot, event, event, event/snapshot ...
+     */
     public OrderSnapshotRepository(int eventsSnapshotDistance) {
         this.eventsSnapshotDistance = eventsSnapshotDistance;
     }
@@ -23,9 +28,9 @@ public class OrderSnapshotRepository implements Repository<UUID, Order> {
     public void persist(UUID dataId, Function<Order, Order> function) {
         Event<Order> event;
         if(currentEventsSnapshotDistance == eventsSnapshotDistance) {
-            var snap = createSnapshot(dataId, eventsMap.getOrDefault(dataId, List.of()));
+            var snap = function.apply(createSnapshot(dataId, eventsMap.getOrDefault(dataId, List.of())));
             snapshots.computeIfAbsent(dataId, k -> new ArrayList<>()).add(snap);
-            currentEventsSnapshotDistance = 0;
+            currentEventsSnapshotDistance = -1;
             event = new Event<>(function, true);
         } else {
             event = new Event<>(function, false);
@@ -40,21 +45,25 @@ public class OrderSnapshotRepository implements Repository<UUID, Order> {
     }
 
     private Order createSnapshot(UUID id, List<Event<Order>> events) {
-        return findAllEventsAfterMostRecentSnapshot(events).stream()
+        return findAllEventsAfterMostRecentSnapshot(events)
                 .reduce(fetchLastSnapshot(id), (order, event) -> event.getCommand().apply(order), (a, b) -> { throw new UnsupportedOperationException(); });
     }
 
-    private List<Event<Order>> findAllEventsAfterMostRecentSnapshot(List<Event<Order>> events) {
+    private Stream<Event<Order>> findAllEventsAfterMostRecentSnapshot(List<Event<Order>> events) {
+        var lst = events.listIterator(events.size());
         var queue = new LinkedList<Event<Order>>();
-        var listIterator = events.listIterator(events.size());
-        while(listIterator.hasPrevious()) {
-            queue.push(listIterator.previous());
+        while(lst.hasPrevious()) {
+            var event = lst.previous();
+
+            if(event.isSnapshotted()) break;
+
+            queue.push(event);
         }
-        return queue;
+        return queue.stream();
     }
 
     private Order fetchLastSnapshot(UUID id) {
         var list = snapshots.getOrDefault(id, List.of());
-        return list.isEmpty() ? null : list.get(snapshots.size() - 1);
+        return list.isEmpty() ? null : list.get(list.size() - 1);
     }
 }

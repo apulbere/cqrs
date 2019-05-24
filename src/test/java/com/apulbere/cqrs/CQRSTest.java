@@ -23,15 +23,19 @@ class CQRSTest {
         cmdHandler = new CommandHandler<>(repository);
         orderId = UUID.randomUUID();
     }
+
     @Test
     void orderFulfilled() {
         cmdHandler.handle(orderId, new CreateOrder());
         cmdHandler.handle(orderId, new AddItem("dog"));
+        cmdHandler.handle(orderId, new AddItem("dog2"));
+        cmdHandler.handle(orderId, new AddItem("dog3"));
+        cmdHandler.handle(orderId, new AddItem("dog4"));
         cmdHandler.handle(orderId, new AddItem("cat"));
         cmdHandler.handle(orderId, new AddShipment("str. Here and Now"));
 
         Order order = repository.fetch(orderId);
-        Order expectedOrder = new Order(OrderStatus.SHIPPED, "str. Here and Now", List.of("dog", "cat"));
+        Order expectedOrder = new Order(OrderStatus.SHIPPED, "str. Here and Now", List.of("dog", "dog2", "dog3", "dog4", "cat"));
 
         assertEquals(expectedOrder, order);
     }
