@@ -5,18 +5,19 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import com.apulbere.cqrs.Command;
 import com.apulbere.cqrs.Order;
 import com.apulbere.cqrs.OrderStatus;
+import com.apulbere.cqrs.Validatable;
 import com.apulbere.cqrs.ValidationResult;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class AddItem implements Command<Order> {
+public class AddItem implements Command<Order>, Validatable<Order> {
 
     private String item;
 
     @Override
-    public Function<Order, Order> execute() {
+    public Function<Order, Order> executable() {
         return order -> {
             var items = Stream.concat(order.getItems().stream(), Stream.of(item)).collect(toUnmodifiableList());
             return order.withItems(items);
@@ -24,7 +25,7 @@ public class AddItem implements Command<Order> {
     }
 
     @Override
-    public ValidationResult validateTargetState(Order target) {
+    public ValidationResult validate(Order target) {
         if(OrderStatus.DRAFT.equals(target.getStatus())) {
             return ValidationResult.valid();
         }

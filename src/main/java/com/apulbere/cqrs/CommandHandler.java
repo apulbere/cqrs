@@ -7,11 +7,11 @@ public class CommandHandler<ID, T> {
 
     private Repository<ID, T> repository;
 
-    public void handle(ID dataId, Command<T> command) {
-        var validationResult = command.validateTargetState(repository.fetch(dataId));
+    public <C extends Command<T> & Validatable<T>> void handle(ID dataId, C validatingCommand) {
+        var validationResult = validatingCommand.validate(repository.fetch(dataId));
         if(!validationResult.isValid()) {
             throw new CommandFailedException(validationResult.getMessage());
         }
-        repository.persist(dataId, command.execute());
+        repository.persist(dataId, validatingCommand.executable());
     }
 }
