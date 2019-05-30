@@ -6,10 +6,10 @@ import com.apulbere.cqrs.OrderStatus;
 
 import java.io.Serializable;
 
-public class CreateOrder implements Command<Order> {
+public class ShipOrder implements Command<Order> {
 
     @Override
     public Order execute(Serializable data, Order initObj) {
-        return new Order(OrderStatus.DRAFT);
+        return initObj.withStatus(OrderStatus.SHIPPED).withShipmentInfo((String) data);
     }
 }

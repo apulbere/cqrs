@@ -2,7 +2,7 @@ package com.apulbere.cqrs;
 
 public class CommandFailedException extends IllegalStateException {
 
-    public CommandFailedException(String s) {
+    CommandFailedException(String s) {
         super(s);
     }
 }

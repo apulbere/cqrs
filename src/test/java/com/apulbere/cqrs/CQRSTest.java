@@ -1,65 +1,55 @@
 package com.apulbere.cqrs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import com.apulbere.cqrs.command.AddItem;
-import com.apulbere.cqrs.command.AddShipment;
 import com.apulbere.cqrs.command.CreateOrder;
-import java.util.List;
-import java.util.UUID;
+import com.apulbere.cqrs.command.ShipOrder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static com.apulbere.cqrs.OrderCommand.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class CQRSTest {
 
-    private OrderSnapshotRepository repository;
-    private CommandHandler<UUID, Order> cmdHandler;
-    private UUID orderId = UUID.randomUUID();
+    private CommandInvoker<OrderCommand, Order> invoker = new CommandInvoker<>(Map.of(
+            CREATE,     new CreateOrder(),
+            ADD_ITEM,   new AddItem(),
+            SHIP,       new ShipOrder()
+    ));
+
+    private OrderSnapshotter orderSnapshotter;
+    private CommandHandler<OrderCommand, Order> commandHandler;
+
+    private UUID orderId;
 
     @BeforeEach
-    void setup() {
-        repository = new OrderSnapshotRepository(2);
-        cmdHandler = new CommandHandler<>(repository);
+    void initEach() {
+        OrderCommandRepository orderCommandRepository = new OrderCommandRepository();
+        orderSnapshotter = new OrderSnapshotter(orderCommandRepository, invoker, 2);
+        commandHandler = new CommandHandler<>(orderSnapshotter, orderCommandRepository);
+
         orderId = UUID.randomUUID();
     }
 
     @Test
     void orderFulfilled() {
-        cmdHandler.handle(orderId, new CreateOrder());
-        cmdHandler.handle(orderId, new AddItem("dog"));
-        cmdHandler.handle(orderId, new AddItem("dog2"));
-        cmdHandler.handle(orderId, new AddItem("dog3"));
-        cmdHandler.handle(orderId, new AddItem("dog4"));
-        cmdHandler.handle(orderId, new AddItem("cat"));
-        cmdHandler.handle(orderId, new AddShipment("str. Here and Now"));
+        commandHandler.handle(new CommandData<>(CREATE, orderId));
+        commandHandler.handle(new CommandData<>(ADD_ITEM, orderId, "dog"));
+        commandHandler.handle(new CommandData<>(ADD_ITEM, orderId, "dog2"));
+        commandHandler.handle(new CommandData<>(ADD_ITEM, orderId, "dog3"));
+        commandHandler.handle(new CommandData<>(ADD_ITEM, orderId, "dog4"));
+        commandHandler.handle(new CommandData<>(ADD_ITEM, orderId, "cat"));
+        commandHandler.handle(new CommandData<>(SHIP, orderId, "str. Here and Now"));
 
-        Order order = repository.fetch(orderId);
+        Order order = orderSnapshotter.fetch(orderId);
         Order expectedOrder = new Order(OrderStatus.SHIPPED, "str. Here and Now", List.of("dog", "dog2", "dog3", "dog4", "cat"));
 
         assertEquals(expectedOrder, order);
     }
 
-    @Test
-    void invalidCreateOrderCmd() {
-        cmdHandler.handle(orderId, new CreateOrder());
-        var error = assertThrows(CommandFailedException.class, () -> cmdHandler.handle(orderId, new CreateOrder()));
-        assertEquals("order already exists", error.getMessage());
-    }
 
-    @Test
-    void invalidAddItemCmd() {
-        cmdHandler.handle(orderId, new CreateOrder());
-        cmdHandler.handle(orderId, new AddShipment("str. Here and Now"));
-        var error = assertThrows(CommandFailedException.class, () -> cmdHandler.handle(orderId, new AddItem("cat")));
-        assertEquals("cannot add item [cat] due to status of order [" + OrderStatus.SHIPPED + "]", error.getMessage());
-    }
-
-    @Test
-    void invalidAddShipmentCmd() {
-        cmdHandler.handle(orderId, new CreateOrder());
-        cmdHandler.handle(orderId, new AddShipment("str. Here and Now"));
-        var error = assertThrows(CommandFailedException.class, () -> cmdHandler.handle(orderId, new AddShipment("str. Here and Now")));
-        assertEquals("order is already in status " + OrderStatus.SHIPPED, error.getMessage());
-    }
 }

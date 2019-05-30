@@ -3,15 +3,13 @@ package com.apulbere.cqrs;
 import lombok.AllArgsConstructor;
 
 @AllArgsConstructor
-public class CommandHandler<ID, T> {
+public class CommandHandler<CMD_NAME, TARGET> {
 
-    private Repository<ID, T> repository;
+    private Snapshotter<CMD_NAME, TARGET> snapshotter;
+    private CommandDataRepository<CMD_NAME> commandDataRepository;
 
-    public <C extends Command<T> & Validatable<T>> void handle(ID dataId, C validatingCommand) {
-        var validationResult = validatingCommand.validate(repository.fetch(dataId));
-        if(!validationResult.isValid()) {
-            throw new CommandFailedException(validationResult.getMessage());
-        }
-        repository.persist(dataId, validatingCommand.executable());
+    public void handle(CommandData<CMD_NAME> commandData) {
+        var newCommand = snapshotter.snapshot(commandData);
+        commandDataRepository.save(newCommand);
     }
 }
