@@ -11,10 +11,5 @@ public interface Snapshotter<CMD_NAME, TARGET> {
      */
     TARGET fetch(Serializable id);
 
-    /**
-     *
-     * @param commandData
-     * @return <code>CommandData</code> which is a copy of <code>commandData</code> with <code>frozen</code> set to true if a snapshot was made
-     */
     void snapshot(CommandData<CMD_NAME> commandData);
 }

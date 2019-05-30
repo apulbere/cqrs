@@ -14,10 +14,11 @@ import java.util.Map;
 public class OrderSnapshotter implements Snapshotter<OrderCommand, Order> {
 
     private final CommandDataRepository<OrderCommand> orderCommandRepository;
-    private Map<Serializable, List<Order>> data = new HashMap<>();
     private final CommandInvoker<OrderCommand, Order> invoker;
     private final int eventsSnapshotDistance;
     private int currentEventsSnapshotDistance = 0;
+
+    private Map<Serializable, List<Order>> data = new HashMap<>();
 
     @Override
     public Order fetch(Serializable uuid) {

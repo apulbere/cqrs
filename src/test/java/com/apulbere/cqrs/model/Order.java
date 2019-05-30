@@ -1,23 +1,20 @@
 package com.apulbere.cqrs.model;
 
-import java.util.List;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.ToString;
+import lombok.Value;
 import lombok.experimental.Wither;
 
+import java.util.List;
+
+@Value
 @Wither
-@Getter
-@ToString
-@EqualsAndHashCode
 @AllArgsConstructor
 public class Order {
     private OrderStatus status;
     private String shipmentInfo;
-    private List<String> items = List.of();
+    private List<String> items;
 
     public Order(OrderStatus status) {
-        this.status = status;
+        this(status, null, List.of());
     }
 }
