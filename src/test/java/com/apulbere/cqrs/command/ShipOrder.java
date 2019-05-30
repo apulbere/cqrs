@@ -1,8 +1,8 @@
 package com.apulbere.cqrs.command;
 
 import com.apulbere.cqrs.Command;
-import com.apulbere.cqrs.Order;
-import com.apulbere.cqrs.OrderStatus;
+import com.apulbere.cqrs.model.Order;
+import com.apulbere.cqrs.model.OrderStatus;
 
 import java.io.Serializable;
 

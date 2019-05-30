@@ -3,6 +3,10 @@ package com.apulbere.cqrs;
 import com.apulbere.cqrs.command.AddItem;
 import com.apulbere.cqrs.command.CreateOrder;
 import com.apulbere.cqrs.command.ShipOrder;
+import com.apulbere.cqrs.model.Order;
+import com.apulbere.cqrs.model.OrderCommand;
+import com.apulbere.cqrs.model.OrderStatus;
+import com.apulbere.cqrs.repository.OrderCommandRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -10,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static com.apulbere.cqrs.OrderCommand.*;
+import static com.apulbere.cqrs.model.OrderCommand.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CQRSTest {
@@ -22,15 +26,19 @@ class CQRSTest {
     ));
 
     private OrderSnapshotter orderSnapshotter;
-    private CommandHandler<OrderCommand, Order> commandHandler;
+    private CommandHandler<OrderCommand> commandHandler;
+    private CommandDataRepository<OrderCommand> cmdDataRepo;
 
     private UUID orderId;
 
     @BeforeEach
     void initEach() {
-        OrderCommandRepository orderCommandRepository = new OrderCommandRepository();
-        orderSnapshotter = new OrderSnapshotter(orderCommandRepository, invoker, 2);
-        commandHandler = new CommandHandler<>(orderSnapshotter, orderCommandRepository);
+        var shortLivingCmdDataRepo = new OrderCommandRepository();
+        orderSnapshotter = new OrderSnapshotter(shortLivingCmdDataRepo, invoker, 2);
+
+        cmdDataRepo = new OrderCommandRepository();
+
+        commandHandler = new CommandHandler<>(List.of(orderSnapshotter::snapshot, cmdDataRepo::save));
 
         orderId = UUID.randomUUID();
     }
@@ -49,6 +57,7 @@ class CQRSTest {
         Order expectedOrder = new Order(OrderStatus.SHIPPED, "str. Here and Now", List.of("dog", "dog2", "dog3", "dog4", "cat"));
 
         assertEquals(expectedOrder, order);
+        assertEquals(7, cmdDataRepo.findAll(orderId).size());
     }
 
 

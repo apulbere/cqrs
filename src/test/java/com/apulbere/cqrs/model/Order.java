@@ -1,4 +1,4 @@
-package com.apulbere.cqrs;
+package com.apulbere.cqrs.model;
 
 import java.util.List;
 import lombok.AllArgsConstructor;

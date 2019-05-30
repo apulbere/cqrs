@@ -1,5 +1,7 @@
 package com.apulbere.cqrs;
 
+import com.apulbere.cqrs.model.Order;
+import com.apulbere.cqrs.model.OrderCommand;
 import lombok.RequiredArgsConstructor;
 
 import java.io.Serializable;
@@ -11,7 +13,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OrderSnapshotter implements Snapshotter<OrderCommand, Order> {
 
-    private final OrderCommandRepository orderCommandRepository;
+    private final CommandDataRepository<OrderCommand> orderCommandRepository;
     private Map<Serializable, List<Order>> data = new HashMap<>();
     private final CommandInvoker<OrderCommand, Order> invoker;
     private final int eventsSnapshotDistance;
@@ -23,24 +25,21 @@ public class OrderSnapshotter implements Snapshotter<OrderCommand, Order> {
     }
 
     @Override
-    public CommandData<OrderCommand> snapshot(CommandData<OrderCommand> commandData) {
-        CommandData<OrderCommand> event;
+    public void snapshot(CommandData<OrderCommand> commandData) {
         if(currentEventsSnapshotDistance == eventsSnapshotDistance) {
             var oldSnap = createSnapshot(commandData.getTargetId());
             var snap = invoker.execute(commandData, oldSnap);
             data.computeIfAbsent(commandData.getTargetId(), k -> new ArrayList<>()).add(snap);
             currentEventsSnapshotDistance = -1;
-            event = commandData.withFrozen(true);
+            orderCommandRepository.delete(commandData.getTargetId());
         } else {
-            event = commandData;
+            orderCommandRepository.save(commandData);
         }
         currentEventsSnapshotDistance++;
-        return event;
-
     }
 
     private Order createSnapshot(Serializable id) {
-        return orderCommandRepository.findAllAfterLastFrozen(id).stream()
+        return orderCommandRepository.findAll(id).stream()
                 .reduce(fetchLastSnapshot(id), (order, event) -> invoker.execute(event, order), (a, b) -> { throw new UnsupportedOperationException(); });
     }
 

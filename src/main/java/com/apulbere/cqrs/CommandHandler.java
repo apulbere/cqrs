@@ -2,14 +2,15 @@ package com.apulbere.cqrs;
 
 import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
-public class CommandHandler<CMD_NAME, TARGET> {
+import java.util.List;
+import java.util.function.Consumer;
 
-    private Snapshotter<CMD_NAME, TARGET> snapshotter;
-    private CommandDataRepository<CMD_NAME> commandDataRepository;
+@AllArgsConstructor
+public class CommandHandler<CMD_NAME> {
+
+    private List<Consumer<CommandData<CMD_NAME>>> commandDataConsumers;
 
     public void handle(CommandData<CMD_NAME> commandData) {
-        var newCommand = snapshotter.snapshot(commandData);
-        commandDataRepository.save(newCommand);
+        commandDataConsumers.forEach(c -> c.accept(commandData));
     }
 }

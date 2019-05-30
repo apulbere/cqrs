@@ -1,7 +1,7 @@
 package com.apulbere.cqrs.command;
 
 import com.apulbere.cqrs.Command;
-import com.apulbere.cqrs.Order;
+import com.apulbere.cqrs.model.Order;
 
 import java.io.Serializable;
 import java.util.stream.Stream;
