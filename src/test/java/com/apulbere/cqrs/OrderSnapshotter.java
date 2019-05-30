@@ -16,7 +16,6 @@ public class OrderSnapshotter implements Snapshotter<OrderCommand, Order> {
     private final CommandDataRepository<OrderCommand> orderCommandRepository;
     private final CommandInvoker<OrderCommand, Order> invoker;
     private final int eventsSnapshotDistance;
-    private int currentEventsSnapshotDistance = 0;
 
     private Map<Serializable, List<Order>> data = new HashMap<>();
 
@@ -27,20 +26,17 @@ public class OrderSnapshotter implements Snapshotter<OrderCommand, Order> {
 
     @Override
     public void snapshot(CommandData<OrderCommand> commandData) {
-        if(currentEventsSnapshotDistance == eventsSnapshotDistance) {
+        if(orderCommandRepository.count(commandData.getTargetId()) == eventsSnapshotDistance) {
             var oldSnap = createSnapshot(commandData.getTargetId());
             var snap = invoker.execute(commandData, oldSnap);
             data.computeIfAbsent(commandData.getTargetId(), k -> new ArrayList<>()).add(snap);
-            currentEventsSnapshotDistance = -1;
-            orderCommandRepository.delete(commandData.getTargetId());
         } else {
             orderCommandRepository.save(commandData);
         }
-        currentEventsSnapshotDistance++;
     }
 
     private Order createSnapshot(Serializable id) {
-        return orderCommandRepository.findAll(id).stream()
+        return orderCommandRepository.delete(id).stream()
                 .reduce(fetchLastSnapshot(id), (order, event) -> invoker.execute(event, order), (a, b) -> { throw new UnsupportedOperationException(); });
     }
 

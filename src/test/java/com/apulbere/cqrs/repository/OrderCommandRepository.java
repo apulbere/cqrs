@@ -27,7 +27,12 @@ public class OrderCommandRepository implements CommandDataRepository<OrderComman
 
     @Override
     public List<CommandData<OrderCommand>> findAll(Serializable id) {
-        return data.get(id);
+        return data.getOrDefault(id, List.of());
+    }
+
+    @Override
+    public int count(Serializable id) {
+        return findAll(id).size();
     }
 
 }
