@@ -2,13 +2,12 @@ package com.apulbere.cqrs;
 
 import com.apulbere.cqrs.model.Order;
 import com.apulbere.cqrs.model.OrderCommand;
-import lombok.RequiredArgsConstructor;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class OrderSnapshooter implements Snapshooter<OrderCommand, Order> {

@@ -2,8 +2,7 @@ package com.apulbere.cqrs;
 
 import java.io.Serializable;
 
-@FunctionalInterface
-public interface Command<T> {
+public interface Command<CMD_NAME, T> {
 
     /**
      *
@@ -12,4 +11,6 @@ public interface Command<T> {
      * @return <code>T</code> a merge between <code>data</code> and <code>initObj</code>
      */
     T execute(Serializable data, T initObj);
+
+    CMD_NAME getCommandName();
 }
