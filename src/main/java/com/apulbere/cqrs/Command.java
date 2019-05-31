@@ -2,6 +2,7 @@ package com.apulbere.cqrs;
 
 import java.io.Serializable;
 
+@FunctionalInterface
 public interface Command<CMD_NAME, T> {
 
     /**
@@ -12,5 +13,7 @@ public interface Command<CMD_NAME, T> {
      */
     T execute(Serializable data, T initObj);
 
-    CMD_NAME getCommandName();
+    default CMD_NAME getCommandName() {
+        throw new UnsupportedOperationException();
+    }
 }
