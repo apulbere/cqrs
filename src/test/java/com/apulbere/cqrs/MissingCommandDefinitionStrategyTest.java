@@ -3,8 +3,6 @@ package com.apulbere.cqrs;
 import static com.apulbere.cqrs.model.OrderCommand.ADD_ITEM;
 import static com.apulbere.cqrs.model.OrderCommand.CREATE;
 import static com.apulbere.cqrs.model.OrderCommand.REMOVE_ITEM;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -13,26 +11,23 @@ import com.apulbere.cqrs.model.OrderCommand;
 import com.apulbere.cqrs.model.OrderStatus;
 import com.apulbere.cqrs.repository.OrderCommandRepository;
 import java.util.List;
-import java.util.ServiceLoader;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-class MissingCommandDefinitionStrategyTest {
+class MissingCommandDefinitionStrategyTest extends CQRSBaseTest {
 
-    private CommandInvoker<OrderCommand, Order> invoker;
     private OrderSnapshooter orderSnapshooter;
     private CommandHandler<OrderCommand> commandHandler;
-    private CommandDataRepository<OrderCommand> cmdDataRepo;
 
     private UUID orderId;
 
     void init(MissingCommandDefinitionStrategy<OrderCommand, Order> missingCommandDefinitionStrategy) {
-        invoker = new CommandInvoker<>(missingCommandDefinitionStrategy, commands());
+        var invoker = new CommandInvoker<>(missingCommandDefinitionStrategy, commands());
         var shortLivingCmdDataRepo = new OrderCommandRepository();
         orderSnapshooter = new OrderSnapshooter(shortLivingCmdDataRepo, invoker, 2);
-        cmdDataRepo = new OrderCommandRepository();
-        commandHandler = new CommandHandler<>(List.of(orderSnapshooter::snapshot, cmdDataRepo::save));
+
+        commandHandler = new CommandHandler<>(List.of(orderSnapshooter::snapshot));
 
         orderId = UUID.randomUUID();
     }
@@ -62,12 +57,4 @@ class MissingCommandDefinitionStrategyTest {
         var expectedOrder = new Order(OrderStatus.DRAFT, null, List.of("beer"));
         assertEquals(expectedOrder, orderSnapshooter.fetch(orderId));
     }
-
-    @SuppressWarnings("unchecked")
-    private static List<Command<OrderCommand, Order>> commands() {
-        return stream(ServiceLoader.load(Command.class).spliterator(), false)
-                .map(c -> (Command<OrderCommand, Order>) c)
-                .collect(toList());
-    }
-
 }

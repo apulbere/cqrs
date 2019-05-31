@@ -3,8 +3,6 @@ package com.apulbere.cqrs;
 import static com.apulbere.cqrs.model.OrderCommand.ADD_ITEM;
 import static com.apulbere.cqrs.model.OrderCommand.CREATE;
 import static com.apulbere.cqrs.model.OrderCommand.SHIP;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.StreamSupport.stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.apulbere.cqrs.model.Order;
@@ -12,14 +10,11 @@ import com.apulbere.cqrs.model.OrderCommand;
 import com.apulbere.cqrs.model.OrderStatus;
 import com.apulbere.cqrs.repository.OrderCommandRepository;
 import java.util.List;
-import java.util.ServiceLoader;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class CQRSTest {
-
-    private CommandInvoker<OrderCommand, Order> invoker = new CommandInvoker<>(commands());
+class CQRSTest extends CQRSBaseTest {
 
     private OrderSnapshooter orderSnapshooter;
     private CommandHandler<OrderCommand> commandHandler;
@@ -29,6 +24,7 @@ class CQRSTest {
 
     @BeforeEach
     void initEach() {
+        var invoker = new CommandInvoker<>(commands());
         var shortLivingCmdDataRepo = new OrderCommandRepository();
         orderSnapshooter = new OrderSnapshooter(shortLivingCmdDataRepo, invoker, 2);
 
@@ -58,12 +54,4 @@ class CQRSTest {
         assertEquals(expectedOrder, order);
         assertEquals(7, cmdDataRepo.findAll(orderId).size());
     }
-
-    @SuppressWarnings("unchecked")
-    private static List<Command<OrderCommand, Order>> commands() {
-        return stream(ServiceLoader.load(Command.class).spliterator(), false)
-                .map(c -> (Command<OrderCommand, Order>) c)
-                .collect(toList());
-    }
-
 }
