@@ -2,7 +2,7 @@ package com.apulbere.cqrs;
 
 import java.io.Serializable;
 
-public interface Snapshotter<CMD_NAME, TARGET> {
+public interface Snapshooter<CMD_NAME, TARGET> {
 
     /**
      *

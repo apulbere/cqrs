@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 @RequiredArgsConstructor
-public class OrderSnapshotter implements Snapshotter<OrderCommand, Order> {
+public class OrderSnapshooter implements Snapshooter<OrderCommand, Order> {
 
     private final CommandDataRepository<OrderCommand> orderCommandRepository;
     private final CommandInvoker<OrderCommand, Order> invoker;

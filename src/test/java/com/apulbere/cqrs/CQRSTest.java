@@ -25,7 +25,7 @@ class CQRSTest {
             SHIP,       new ShipOrder()
     ));
 
-    private OrderSnapshotter orderSnapshotter;
+    private OrderSnapshooter orderSnapshooter;
     private CommandHandler<OrderCommand> commandHandler;
     private CommandDataRepository<OrderCommand> cmdDataRepo;
 
@@ -34,11 +34,11 @@ class CQRSTest {
     @BeforeEach
     void initEach() {
         var shortLivingCmdDataRepo = new OrderCommandRepository();
-        orderSnapshotter = new OrderSnapshotter(shortLivingCmdDataRepo, invoker, 2);
+        orderSnapshooter = new OrderSnapshooter(shortLivingCmdDataRepo, invoker, 2);
 
         cmdDataRepo = new OrderCommandRepository();
 
-        commandHandler = new CommandHandler<>(List.of(orderSnapshotter::snapshot, cmdDataRepo::save));
+        commandHandler = new CommandHandler<>(List.of(orderSnapshooter::snapshot, cmdDataRepo::save));
 
         orderId = UUID.randomUUID();
     }
@@ -53,7 +53,7 @@ class CQRSTest {
         commandHandler.handle(new CommandData<>(ADD_ITEM, orderId, "cat"));
         commandHandler.handle(new CommandData<>(SHIP, orderId, "str. Here and Now"));
 
-        Order order = orderSnapshotter.fetch(orderId);
+        Order order = orderSnapshooter.fetch(orderId);
         Order expectedOrder = new Order(OrderStatus.SHIPPED, "str. Here and Now", List.of("dog", "dog2", "dog3", "dog4", "cat"));
 
         assertEquals(expectedOrder, order);
