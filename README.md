@@ -1,7 +1,7 @@
 ## About
-Command Query Responsibility Segregation (CQRS) implemented in Java
+Command Query Responsibility Segregation (CQRS) and Event Sourcing
 
-![CQRS Interfaces and classes](https://github.com/apulbere/cqrs/raw/master/diagrams/cqrs-interfaces.png "CQRS Interfaces and classes")
+![Interfaces and Classes](https://github.com/apulbere/cqrs/raw/master/diagrams/cqrs-interfaces.png "Interfaces and Classes")
 
 For details check [unit tests](src/test/java/com/apulbere/cqrs/CQRSTest.java)
 
